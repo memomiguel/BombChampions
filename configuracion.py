@@ -24,3 +24,6 @@ tamano_boton = 32
 # ELEMENTOS DEL MENU
 boton_ancho = 250
 boton_alto = 60
+
+# CONFIGURACION DEL MAPA
+tamano_bloque = 32
