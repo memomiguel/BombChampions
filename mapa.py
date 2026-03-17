@@ -81,7 +81,7 @@ class Mapa:
                 # 4. El resto es suelo o cajas aleatorias
                 else:
                     # 70% de probabilidad de caja, 30% vacío
-                    if random.randint(0, 100) < 70:
+                    if random.randint(0, 100) < densidad:
                         fila_grilla.append(2)
                     else:
                         fila_grilla.append(0)

@@ -27,3 +27,4 @@ boton_alto = 60
 
 # CONFIGURACION DEL MAPA
 tamano_bloque = 32
+densidad = 70
