@@ -1,0 +1,398 @@
+# MEMORIA DEL PROYECTO INTERMODULAR
+
+---
+
+## 1. Portada
+
+| Campo | Dato |
+|-------|------|
+| **Centro educativo** | IES El Álamo — *[confirmar localidad exacta con el centro]* |
+| **Módulo profesional** | Proyecto Intermodular SMR (Sistemas Microinformáticos y Redes) |
+| **Título del proyecto** | **Bomb Champions** |
+| **Alumnos** | Miguel Eduardo Marcano Ordaz · Gabriel Alejandro Celis Ordaz |
+| **Tutor/a del proyecto** | Raúl Bernabé Sebastián |
+| **Fecha de exposición** | 5 de junio de 2026 |
+| **Imagen representativa** | *[Insertar captura del menú principal o composición mapa + sprites]* |
+
+> **Nota de maquetación:** Al exportar a PDF, esta portada no debe llevar encabezado ni pie de página (normas del centro).
+
+---
+
+## 2. Índice
+
+> *El índice definitivo con números de página se completará al final, después de exportar el documento a PDF.*
+
+| Apartado | Página |
+|----------|--------|
+| 1. Portada | — |
+| 2. Índice | — |
+| 3. Descripción general del proyecto | — |
+| 4. Objetivos | — |
+| 5. Justificación de la opción elegida | — |
+| 5.1. Uso de inteligencia artificial en el desarrollo | — |
+| 6. Recursos necesarios | — |
+| 7. Desarrollo del proyecto | — |
+| 7.1. Metodología y fases | — |
+| 7.2. Arquitectura del software | — |
+| 7.3. Desarrollo técnico (Miguel Marcano) | — |
+| 7.4. Diseño gráfico y assets (Gabriel Celis) | — |
+| 7.5. Música y sonido (Gabriel Celis) | — |
+| 7.6. Diseño visual de personajes (Gabriel Celis) | — |
+| 8. Manual básico de utilización | — |
+| 9. Dificultades encontradas | — |
+| 10. Conclusiones | — |
+| 11. Posibles mejoras | — |
+| 12. Fuentes de información y webgrafía | — |
+
+---
+
+## 3. Descripción general del proyecto
+
+Bomb Champions es un videojuego para ordenador inspirado en el clásico Bomberman. Dos o más jugadores se mueven por un laberinto, colocan bombas para romper bloques y intentan eliminar a los demás. El último jugador en pie gana la partida.
+
+La idea principal del proyecto no es solo copiar un juego antiguo, sino añadir personajes distintos, los campeones, que el jugador elige antes de empezar. Cada campeón puede tener velocidad, número de bombas o una habilidad especial diferente. En el Bomberman original todos los personajes son iguales, aquí la elección importa.
+
+El juego se ha programado en Python con la librería de Pygame, de modo que funciona en cualquier ordenador con tal de instalar python. También incluye partidas en red local (LAN) entre varios ordenadores, incluyendo asi el módulo de Redes.
+
+El producto está en fase de MVP, que significa producto mínimo viable (Minimum Viable Product): el menú, el mapa, los jugadores, las bombas y el modo multijugador por red están implementados. Al desarrollar el juego, se pensó no solo en diseñar lo mínimo para que sea funcional, si no también dejar el terreno preparado para escalarlo, o sea, añadir mas mejoras a futuro.
+
+---
+
+## 4. Objetivos
+
+### 4.1. Objetivos generales
+
+- Desarrollar un videojuego funcional Pygame, aplicando programación orientada a objetos.
+- Integrar conocimientos de redes (cliente-servidor, sockets) para partidas multijugador en LAN.
+- Diseñar los assets: Imagenes, sprites, musica y arte del juego.
+
+### 4.2. Objetivos específicos
+
+| Objetivo | Estado |
+|----------|--------|
+| Estructura modular del código (`main`, `mapa`, `bomba`, `campeones`, `red_*`) | Logrado |
+| Menú principal y flujo de partida local 2 jugadores | Logrado |
+| Generación y dibujo del mapa (17×21 celdas) | Logrado |
+| Sistema de bombas y explosiones | Logrado |
+| Campeones con parámetros y habilidades especiales | Logrado (en ampliación) |
+| Multijugador LAN (crear/buscar partida, sincronización) | Implementado; requiere pruebas en red real |
+| Assets gráficos y música coherentes con el estilo del juego | En curso (Gabriel Celis) |
+| Documentar decisiones técnicas y manual de usuario | En curso (esta memoria) |
+
+---
+
+## 5. Justificación de la opción elegida
+
+Se ha elegido trabajar con Python, Pygame, PyCharm, Piskel, Photopea y BeepBox por las razones siguientes:
+
+1. El ciclo SMR incluye programación en Python y fundamentos de redes; el proyecto demuestra ambos.
+2. Python, Pygame, PyCharm Community, Piskel y BeepBox no requieren licencias de pago, se pueden usar gratuitamente.
+3. Piskel encaja con el estilo retro del juego, es facil crear los sprites pixelados que usamos en el proyecto.
+4. Photopea es un programa de edicion de imagenes que se enseño el año pasado. Se uso para montar la portada del juego.
+5. BeepBox es una herramienta en linea que facilita mucho la creacion de musica para el juego. Se enfoca en un estilo retro.
+6. Multijugador LAN: Implementacion basica de redes. Se necesita conicimiento de IPs, Firewall, sockets, puertos, y demas para que funcione el juego.
+
+### 5.1. Uso de inteligencia artificial en el desarrollo
+
+El uso de herramientas de inteligencia artificial (asistentes de código, asistencia para solucionar errores y bugs, ayuda con el diseño de musica.) forma parte deliberada del proyecto y se justifica en dos ámbitos: formativo y profesional.
+
+#### Justificación formativa
+
+En el instituto ya trabajamos con Python, pero Pygame y las redes con sockets eran cosas nuevas para el equipo. La IA nos ha servido como apoyo cuando nos atascábamos: por ejemplo, entender un error de Pygame, ver cómo organizar el envío de datos por TCP o probar una idea antes de meterla en el código definitivo.
+
+Eso no significa copiar y pegar sin más. Siempre revisamos lo que sale, lo probamos en el juego y lo adaptamos a nuestros archivos (`main.py`, `red_partida.py`, etc.). Así hemos aprendido más rápido que leyendo solo documentación, porque veíamos el problema concreto de nuestro proyecto y no un ejemplo genérico.
+
+También nos ha ayudado a redactar borradores de esta memoria y a ordenar ideas para la exposición, pero el contenido final lo escribimos y comprobamos nosotros, sobre todo lo que describe lo que el juego hace de verdad.
+
+#### Contexto del mercado laboral
+
+Las ofertas de empleo para desarrollador de software, técnico de sistemas y perfiles junior en informática mencionan con frecuencia competencias como:
+
+- Productividad con asistentes de IA en el IDE.
+- Capacidad de revisar y validar código generado o sugerido.
+- Documentación y pruebas apoyadas en herramientas actuales.
+
+Un programador que rechaza por completo el uso de IA en el flujo de trabajo puede resultar menos competitivo frente a quien la utiliza con criterio: no para sustituir el pensamiento, sino para acelerar tareas repetitivas, explorar APIs desconocidas (PyGame) y ayuda en la solucion de errores.
+
+En el sector la IA no sustituye al desarrollador: amplía su alcance. La habilidad valorada es saber qué pedir, comprobar el resultado y asumir la responsabilidad del código y la documentación entregados.
+
+#### Uso previsto en el trabajo de Gabriel Celis
+
+*[Pendiente de redactar por Gabriel Celis: uso de IA en Piskel, BeepBox, búsqueda de referencias visuales, etc., si aplica.]*
+
+---
+
+## 6. Recursos necesarios
+
+### 6.1. Hardware
+
+- Dos ordenadores portátiles o de sobremesa (uno por integrante del equipo).
+- Red local Wi‑Fi o cableada para el multijugador LAN.
+
+### 6.2. Software
+
+| Herramienta | Uso |
+|-------------|-----|
+| **Python** | Lenguaje principal |
+| **Pygame** | Ventana, sprites, eventos, sonido básico |
+| **PyCharm** | IDE: edición, depuración, entorno virtual |
+| **Git** | Control de versiones del repositorio del proyecto |
+| **Piskel** | Sprites pixel art |
+| **Photopea** | Diseño de la portada del proyecto y juego |
+| **BeepBox** | Música y efectos en estilo retro |
+
+### 6.3. Servicios en línea
+
+- Repositorio del código en Github.
+
+---
+
+## 7. Desarrollo del proyecto
+
+### 7.1. Metodología y fases
+
+El desarrollo sigue la metodología por fases de la propuesta inicial:
+
+1. **Planificación:** Idea del juego, mecánicas, reparto Miguel / Gabriel.
+2. **Diseño de estructura:** Módulos Python, que sea facil de ver que elementos controla cada archivo, constantes en `configuracion.py`.
+3. **Programación principal:** Mapa, jugadores, bombas, menús.
+4. **Multijugador:** Descubrimiento UDP y partida TCP (`red_descubrimiento.py`, `red_partida.py`).
+5. **Gráficos y sonido:** Assets en `assets/` (responsabilidad principal de Gabriel).
+6. **Integración y pruebas:** Partidas locales y en LAN, corrección de bugs.
+7. **Documentación y presentación:** Realizar la Memoria (este documento) y presentacion en Canva.
+
+### 7.2. Arquitectura del software
+
+```
+main.py
+  ├── configuracion.py    (constantes, teclas, red)
+  ├── mapa.py             (clase Mapa: grilla y dibujo)
+  ├── bomba.py            (Bomba, GestorBombas)
+  ├── campeones.py        (definición de campeones, clase Jugador)
+  ├── especiales.py       (habilidades, p. ej. cuchillo)
+  ├── red_descubrimiento.py  (anuncio/búsqueda UDP)
+  └── red_partida.py         (host/cliente TCP)
+```
+
+*[Insertar diagrama en `PRESENTACION/ENTREGA/imagenes/diagramas/arquitectura_modulos.png`]*
+
+**Estructura de carpetas del repositorio:**
+
+```
+BombChampions/
+  main.py
+  configuracion.py
+  mapa.py
+  bomba.py
+  campeones.py
+  especiales.py
+  red_descubrimiento.py
+  red_partida.py
+  assets/          # imágenes y .piskel
+  ejecutar.bat     # lanzador Windows
+  requirements.txt
+```
+
+### 7.3. Desarrollo técnico (Miguel Marcano)
+
+#### Implementado
+
+| Componente | Descripción breve |
+|------------|---------------------|
+| **Menú principal** | Título, botones: partida local, crear partida, buscar partidas, salir. |
+| **Mapa** | Grilla **17 filas × 21 columnas**; celdas: suelo (0), pared fija (1), caja destructible (2). Bordes y pilares fijos; cajas aleatorias. |
+| **Jugador** | Movimiento por cuadrícula, colisiones, elección de campeón, dibujo con sprites. |
+| **Bombas** | Colocación, temporizador, explosión en cruz, destrucción de cajas, daño a jugadores. |
+| **Campeones** | Cuatro personajes: Guerrero Azul, Rojo, Amarillo y CuchillasPJ (especial cuchillo). |
+| **Partida local** | Dos jugadores en el mismo PC (flechas + WASD). |
+| **Red LAN** | Host anuncia partida; clientes buscan y se unen; sincronización de estado desde el host. |
+
+#### Mapa — tipos de celda
+
+| Valor | Significado | Asset |
+|-------|-------------|-------|
+| 0 | Suelo transitable | `Pasto.png` |
+| 1 | Pared indestructible | `ParedHierro.gif` |
+| 2 | Caja destructible | `ParedLadrillos.png` |
+
+#### Controles (partida local)
+
+| Jugador | Movimiento | Bomba | Especial |
+|---------|------------|-------|----------|
+| 1 | Flechas | Espacio | Mayús izquierdo |
+| 2 | WASD | E | Q |
+
+*(Los valores exactos están en `configuracion.py`.)*
+
+---
+
+### 7.4. Diseño gráfico y assets (Gabriel Celis)
+
+> **Estado:** *Apartado pendiente de redactar por Gabriel Celis.*
+
+#### Contenido previsto
+
+- [ ] Herramientas utilizadas (Piskel, Photopea, etc.)
+- [ ] Paleta de colores y tamaño de tile (32×32)
+- [ ] Listado de sprites: suelo, paredes, bombas, explosiones, UI
+- [ ] Proceso de exportación desde `.piskel` a PNG/GIF
+- [ ] Capturas de pantalla del trabajo en Piskel
+- [ ] Problemas encontrados (assets faltantes, fallback rojo) y soluciones
+
+#### Placeholder — texto a completar
+
+```
+[Aquí Gabriel describirá el diseño de los tiles del mapa, la coherencia visual
+con Bomberman y las decisiones de estilo pixel art. Incluir figuras con pie
+de imagen y ruta a assets/.]
+```
+
+---
+
+### 7.5. Música y sonido (Gabriel Celis)
+
+> **Estado:** *Apartado pendiente de redactar por Gabriel Celis.*
+
+#### Contenido previsto
+
+- [ ] Herramientas (BeepBox u otras)
+- [ ] Pista de menú / pista de partida / efectos (bomba, explosión, victoria)
+- [ ] Formato de archivo y cómo se cargan en Pygame
+- [ ] Capturas o enlace a composiciones
+
+#### Placeholder — texto a completar
+
+```
+[Aquí Gabriel documentará la banda sonora, efectos de sonido y criterios
+de estilo retro. Si algún sonido no está integrado aún, indicarlo como
+planificado.]
+```
+
+---
+
+### 7.6. Diseño visual de personajes / campeones (Gabriel Celis)
+
+> **Estado:** *Apartado pendiente de redactar por Gabriel Celis.*
+
+#### Contenido previsto
+
+- [ ] Bocetos o referencias de cada campeón (Azul, Rojo, Amarillo, CuchillasPJ)
+- [ ] Hojas de sprites por dirección (arriba, abajo, izquierda, derecha)
+- [ ] Relación entre diseño visual y habilidades (p. ej. CuchillasPJ y el cuchillo)
+- [ ] Tabla prefijo de carpeta → archivos (`BLUE`, `RED`, etc.)
+
+#### Placeholder — texto a completar
+
+```
+[Aquí Gabriel explicará el diseño de personajes jugables, diferencias visuales
+entre campeones y el proceso de creación de animaciones en Piskel.]
+```
+
+---
+
+## 8. Manual básico de utilización
+
+### 8.1. Requisitos
+
+- Ordenador con cualquier sistema operativo que corra Python (Windows, Linux, Mac).
+- Python 3.10 o superior.
+- Dependencias en `requirements.txt` (principalmente `pygame`).
+
+### 8.2. Instalación
+
+No requiere instalacion, el juego final es un .exe standalone portable.
+
+### 8.3. Ejecutar el juego
+
+Doble click en el juego
+
+### 8.4. Menú y modos de juego
+
+1. **INICIAR PARTIDA (local):** dos jugadores en el mismo ordenador; elegir campeón y jugar.
+2. **CREAR PARTIDA:** el host crea una sala LAN; muestra su IP; espera jugadores; **INICIAR PARTIDA** con mínimo 2.
+3. **BUSCAR PARTIDAS:** el cliente lista salas en la red y se une a una.
+4. **SALIR** o tecla **ESC** para volver al menú o cerrar.
+
+### 8.5. Multijugador LAN — incidencias frecuentes
+
+- Ambos PCs en la misma red Wi‑Fi.
+- Permitir Python en el firewall de Windows (red privada).
+- Si no aparecen salas, comprobar IP del host y que el puerto no esté bloqueado.
+
+---
+
+## 9. Dificultades encontradas
+
+### Aprender a usar GitHub en pareja
+
+Al principio nos costó coordinar el repositorio. Los dos trabajábamos en la misma rama y al hacer `git push` aparecían conflictos o cambios que se pisaban. Tuvimos que aprender a comunicar qué archivo tocaba cada uno, hacer `pull` antes de subir y, cuando hacía falta, usar ramas o subir cambios en momentos distintos. No es un problema del juego en sí, pero sí del trabajo en equipo y nos retrasó un poco hasta cogerle el tranquillo.
+
+### Los GIF animados se veían como imágenes fijas
+
+Algunos sprites se exportaron como GIF pensando que Pygame los animaría solos, pero en pantalla solo se veía el primer fotograma, como una imagen estática. La solución que estamos aplicando es pasar esas animaciones a spritesheets (una sola imagen con varios frames) y recortar en código el frame que toca en cada momento. Así el movimiento del personaje queda bajo nuestro control y no depende de cómo Pygame cargue el GIF.
+
+### Controles en partida LAN
+
+En red, cada jugador está en su propio PC, pero al principio el juego seguía leyendo las teclas como si todos estuvieran en el mismo teclado: en el cliente también hacía falta pulsar WASD aunque ese jugador fuera el “jugador 2” en lógica local. Eso confundía en las pruebas. Lo corregimos para que, en LAN, cada máquina envíe solo la entrada de su jugador y que las teclas de movimiento y bomba sean las del jugador 1 en todos los equipos, de modo que cada uno controla solo a su personaje en pantalla.
+
+### Movimiento encajado al grid (teletransporte entre casillas)
+
+Al principio el movimiento del personaje estaba ligado directamente a la cuadrícula del mapa: cada pulsación de tecla cambiaba al instante la fila y la columna lógicas, y el sprite se dibujaba siempre alineado a una casilla. Visualmente parecía un teletransporte, no un desplazamiento continuo, y chocaba con las animaciones de caminata que habíamos añadido con spritesheets. La solución fue separar la posición lógica en el grid (para bombas, colisiones y multijugador) de la posición en píxeles en pantalla, interpolando entre casillas mientras el jugador se mueve. Así el personaje recorre la celda de forma fluida y la animación de walk/idle encaja con el movimiento real.
+
+*[Gabriel puede añadir dificultades de diseño gráfico y audio en una subsección.]*
+
+---
+
+## 10. Conclusiones
+
+### Miguel Marcano (programación y arquitectura)
+
+Hemos aprendido cosas importantes sobre el desarollo de juegos y aplicaciones. Respecto al codigo, a como estructurarlo de forma modular, osea, distintos archivos python que cumplan roles distintos, y que se comuniquen entre ellos. Se aprendio a implementar librerias desconocidas (Pygame) en el proyecto, programacion orientada a objetos, uso de listas y implementacion de redes en el codigo.
+
+### Gabriel Celis (diseño gráfico, audio y personajes)
+
+> *[Pendiente: conclusiones personales de Gabriel sobre diseño, herramientas creativas y trabajo en equipo.]*
+
+### Conclusión conjunta
+
+Bomb Champions une programación, redes y diseño en un mismo proyecto. No está cerrado como un juego comercial, pero ya se puede jugar en local y por LAN, y queda una base clara para seguir con más campeones, sonido y mejoras después del PI.
+
+---
+
+## 11. Posibles mejoras
+
+- Nuevos campeones con habilidades distintas (escudo, teleport, etc.).
+- **IA** para enemigos en modo solitario.
+- **Sonido** completo (música de menú y efectos sincronizados).
+- **Empaquetado** con PyInstaller para un solo `.exe`.
+- **Mejoras de red:** predicción de movimiento, chat en sala, más de 4 jugadores.
+- **Mapas** alternativos y editor de niveles.
+- **Interfaz** más pulida (animaciones de menú, tutorial integrado).
+
+---
+
+## 12. Fuentes de información y webgrafía
+
+*Completar en orden alfabético al cerrar el PDF.*
+
+| Referencia | URL |
+|------------|-----|
+| BeepBox | https://www.beepbox.co/ |
+| Documentación Pygame | https://www.pygame.org/docs/ |
+| JetBrains — PyCharm | https://www.jetbrains.com/pycharm/ |
+| Piskel — editor de sprites | https://www.piskelapp.com/ |
+| Python — documentación oficial | https://docs.python.org/3/ |
+| Wikipedia — Bomberman (referencia histórica) | https://es.wikipedia.org/wiki/Bomberman |
+
+---
+
+## Anexos sugeridos (opcional)
+
+- Captura 1: menú principal → `imagenes/capturas/menu.png`
+- Captura 2: partida en curso → `imagenes/capturas/partida.png`
+- Diagrama: arquitectura de módulos → `imagenes/diagramas/arquitectura_modulos.png`
+- Imagen de referencia Bomberman (con licencia/fuente citada en pie de figura)
+
+---
+
+*Documento fuente para exportación a PDF (Arial/Times 12, interlineado 1,5, márgenes 2,5 cm, texto justificado). Versión borrador — mayo 2026.*
