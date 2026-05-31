@@ -1,0 +1,11 @@
+Este trabajo tiene fines educativos. La documentacion y presentacion tienen un peso enormemente mayor a la calidad del juego en si.
+
+CONTEXTO COMPLETO PARA EL AGENTE:
+  -> Ver INSTRUCCIONES_PARA_EL_AGENTE.md (plan de trabajo, simplicidad SMR, fases, que no hacer).
+
+Resumen rapido:
+- Prioridad: memoria PDF + exposicion oral + Canva. Codigo sencillo y explicable en grado medio SMR.
+- Propuesta ya enviada: Proyecto_Intermodular_Miguel_Marcano
+- Normas del centro: Propuesta de Indice de Memoria PI, Orientacion y normas para PI
+- Presentacion Canva incompleta (PNG de referencia en esta carpeta)
+- No generar documentacion definitiva hasta que el usuario lo pida.
