@@ -63,7 +63,7 @@ def puede_usar(jugador, ahora_ms):
     return ahora_ms - jugador.ultimo_especial_ms >= definicion["cooldown_ms"]
 
 
-def usar_especial(jugador, jugadores, mapa, ahora_ms):
+def usar_especial(jugador, jugadores, mapa, ahora_ms, on_dano=None):
     """
     Activa la habilidad del campeón si el cooldown lo permite.
     Devuelve True si se activó.
@@ -75,13 +75,13 @@ def usar_especial(jugador, jugadores, mapa, ahora_ms):
     jugador.ultimo_especial_ms = ahora_ms
 
     if jugador.especial_id == "cuchillo":
-        _activar_cuchillo(jugador, jugadores, mapa, definicion, ahora_ms)
+        _activar_cuchillo(jugador, jugadores, mapa, definicion, ahora_ms, on_dano=on_dano)
         return True
 
     return False
 
 
-def _activar_cuchillo(jugador, jugadores, mapa, definicion, ahora_ms):
+def _activar_cuchillo(jugador, jugadores, mapa, definicion, ahora_ms, on_dano=None):
     df, dc = jugador.direccion_vector()
     fila_obj = jugador.fila + df * definicion["alcance"]
     col_obj = jugador.columna + dc * definicion["alcance"]
@@ -104,7 +104,10 @@ def _activar_cuchillo(jugador, jugadores, mapa, definicion, ahora_ms):
         if otro.jugador_id == jugador.jugador_id:
             continue
         if otro.celda_colision() == (fila_obj, col_obj):
-            otro.perder_vida(ahora_ms)
+            if on_dano:
+                on_dano(otro, ahora_ms)
+            else:
+                otro.perder_vida(ahora_ms)
 
 
 def actualizar_ataques(ahora_ms):

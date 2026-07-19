@@ -10,6 +10,9 @@ from bomba import GestorBombas
 import campeones
 import especiales
 import hud
+import sonido
+import red_eventos
+from powerups import GestorPowerups
 
 try:
     import red_descubrimiento
@@ -30,51 +33,80 @@ def _teclas_a_entrada(teclas, jugador):
     }
 
 
-def _aplicar_entrada_red(jugador, entrada, mapa, gestor_bombas, jugadores, ahora_ms):
+def _on_dano_lan(jugador, ahora_ms, host_red):
+    red_eventos.perder_vida_con_evento(jugador, ahora_ms, host_red)
+
+
+def _aplicar_entrada_red(jugador, entrada, mapa, gestor_bombas, jugadores, ahora_ms, host_red=None):
     if not jugador.esta_vivo or not entrada:
         return
-    bombas_ocupadas = gestor_bombas.celdas_ocupadas()
     if entrada.get("arriba"):
-        jugador.intentar_mover(-1, 0, mapa, bombas_ocupadas, ahora_ms)
+        red_eventos.intentar_movimiento_con_evento(
+            jugador, -1, 0, mapa, gestor_bombas, ahora_ms, host_red
+        )
     elif entrada.get("abajo"):
-        jugador.intentar_mover(1, 0, mapa, bombas_ocupadas, ahora_ms)
+        red_eventos.intentar_movimiento_con_evento(
+            jugador, 1, 0, mapa, gestor_bombas, ahora_ms, host_red
+        )
     elif entrada.get("izquierda"):
-        jugador.intentar_mover(0, -1, mapa, bombas_ocupadas, ahora_ms)
+        red_eventos.intentar_movimiento_con_evento(
+            jugador, 0, -1, mapa, gestor_bombas, ahora_ms, host_red
+        )
     elif entrada.get("derecha"):
-        jugador.intentar_mover(0, 1, mapa, bombas_ocupadas, ahora_ms)
-    if entrada.get("bomba") and jugador.esta_alineado():
-        gestor_bombas.colocar(jugador.columna, jugador.fila, jugador)
+        red_eventos.intentar_movimiento_con_evento(
+            jugador, 0, 1, mapa, gestor_bombas, ahora_ms, host_red
+        )
+    if entrada.get("bomba"):
+        jugador.solicitar_bomba()
     if entrada.get("especial") and jugador.esta_alineado():
-        especiales.usar_especial(jugador, jugadores, mapa, ahora_ms)
+        red_eventos.usar_especial_con_evento(
+            jugador, jugadores, mapa, ahora_ms, host_red
+        )
 
 
-def _serializar_estado(mapa, jugadores, gestor_bombas):
-    return {
-        "grilla": mapa.grilla,
-        "jugadores": [
-            {
-                "id": j.jugador_id,
-                "fila": j.fila,
-                "columna": j.columna,
-                "direccion": j.direccion,
-                "vivo": j.esta_vivo,
-                "campeon_id": j.campeon["id"],
-                **j.exportar_estado_red(),
-            }
-            for j in jugadores
-        ],
-        "bombas": gestor_bombas.a_serializar(),
-    }
+def _procesar_movimiento_local(jugador, teclas, mapa, gestor_bombas, ahora_ms, host_red=None):
+    if not jugador.esta_vivo:
+        return
+    if teclas[jugador.teclas["arriba"]]:
+        red_eventos.intentar_movimiento_con_evento(
+            jugador, -1, 0, mapa, gestor_bombas, ahora_ms, host_red
+        )
+    elif teclas[jugador.teclas["abajo"]]:
+        red_eventos.intentar_movimiento_con_evento(
+            jugador, 1, 0, mapa, gestor_bombas, ahora_ms, host_red
+        )
+    elif teclas[jugador.teclas["izquierda"]]:
+        red_eventos.intentar_movimiento_con_evento(
+            jugador, 0, -1, mapa, gestor_bombas, ahora_ms, host_red
+        )
+    elif teclas[jugador.teclas["derecha"]]:
+        red_eventos.intentar_movimiento_con_evento(
+            jugador, 0, 1, mapa, gestor_bombas, ahora_ms, host_red
+        )
 
 
-def _sincronizar_desde_host(estado, mapa, jugadores, gestor_bombas, ahora_ms):
-    mapa.grilla = [fila[:] for fila in estado["grilla"]]
-    por_id = {j.jugador_id: j for j in jugadores}
-    for datos in estado["jugadores"]:
-        j = por_id.get(datos["id"])
-        if j:
-            j.aplicar_estado_red(datos, ahora_ms)
-    gestor_bombas.cargar_desde_red(estado.get("bombas", []), por_id, ahora_ms)
+def _prediccion_cliente(yo, teclas, mapa, gestor_bombas, ahora_ms, prediccion):
+    if not yo or not yo.esta_vivo:
+        return
+    prediccion.limpiar_bomba_expirada(ahora_ms, timeout_prediccion_bomba_ms)
+    if prediccion.tiene_movs_pendientes():
+        return
+    if teclas[yo.teclas["arriba"]]:
+        if red_eventos.intentar_movimiento_con_evento(yo, -1, 0, mapa, gestor_bombas, ahora_ms):
+            prediccion.registrar_mov(-1, 0)
+    elif teclas[yo.teclas["abajo"]]:
+        if red_eventos.intentar_movimiento_con_evento(yo, 1, 0, mapa, gestor_bombas, ahora_ms):
+            prediccion.registrar_mov(1, 0)
+    elif teclas[yo.teclas["izquierda"]]:
+        if red_eventos.intentar_movimiento_con_evento(yo, 0, -1, mapa, gestor_bombas, ahora_ms):
+            prediccion.registrar_mov(0, -1)
+    elif teclas[yo.teclas["derecha"]]:
+        if red_eventos.intentar_movimiento_con_evento(yo, 0, 1, mapa, gestor_bombas, ahora_ms):
+            prediccion.registrar_mov(0, 1)
+    if yo.bomba_pulsada and yo.puede_colocar_bomba():
+        if gestor_bombas.colocar(yo.columna, yo.fila, yo, creada_ms=ahora_ms):
+            yo.bomba_pulsada = False
+            prediccion.registrar_bomba(yo.fila, yo.columna, ahora_ms)
 
 
 class Juego:
@@ -87,10 +119,12 @@ class Juego:
         self.boton_fuente = pygame.font.SysFont(nombre_fuente, tamano_boton)
         self.texto_fuente = pygame.font.SysFont(nombre_fuente, tamano_texto)
         self.pequena_fuente = pygame.font.SysFont(nombre_fuente, tamano_pequeno)
+        self.tarjeta_fuente = pygame.font.SysFont(nombre_fuente, tamano_tarjeta_campeon)
         self.hud_partida = hud.HudPartida()
         self.host_red = None
         self.cliente_red = None
         self.descubrimiento = None
+        self.indice_esquema_local = INDICE_ESQUEMA_FLECHAS
         self.fondo_menu = None
         self.overlay_menu = None
         try:
@@ -100,6 +134,8 @@ class Juego:
             self.overlay_menu.fill((0, 0, 0, menu_overlay_alpha))
         except (FileNotFoundError, pygame.error):
             pass
+        sonido.iniciar()
+        sonido.musica_menu()
 
     def _limpiar_red(self):
         if self.descubrimiento:
@@ -124,6 +160,59 @@ class Juego:
         superficie = fuente.render(texto, True, color)
         rect = superficie.get_rect(center=(x, y))
         self.screen.blit(superficie, rect)
+
+    def escribir_lineas_apiladas(self, lineas, fuente, color, centro_x, y_superior, espacio_extra=3):
+        """Apila líneas hacia abajo sin solapar (ancla superior, no centrada en Y)."""
+        y = y_superior
+        paso = fuente.get_linesize() + espacio_extra
+        for linea in lineas:
+            superficie = fuente.render(linea, True, color)
+            rect = superficie.get_rect(midtop=(centro_x, y))
+            self.screen.blit(superficie, rect)
+            y += paso
+
+    def _layout_tarjetas_campeones(self, ids):
+        n = len(ids)
+        margen = 12
+        separacion = 10
+        ancho = (ventana_ancho - 2 * margen - (n - 1) * separacion) // n
+        alto = 268
+        y = 118
+        tarjetas = []
+        for i, cid in enumerate(ids):
+            x = margen + i * (ancho + separacion)
+            tarjetas.append((pygame.Rect(x, y, ancho, alto), cid))
+        return tarjetas
+
+    def _dibujar_tarjeta_campeon(self, rect, campeon_id, resaltado=False):
+        campeon = campeones.obtener_campeon(campeon_id)
+        fondo = (70, 70, 70) if resaltado else gris_medio
+        pygame.draw.rect(self.screen, fondo, rect)
+        pygame.draw.rect(self.screen, blanco, rect, 2)
+
+        preview = campeones.obtener_preview(campeon_id)
+        zona_sprite_y = rect.top + 52
+        preview_rect = preview.get_rect(center=(rect.centerx, zona_sprite_y))
+        self.screen.blit(preview, preview_rect)
+
+        y_texto = rect.top + 108
+        nombre = campeon["nombre"]
+        if len(nombre) > 16:
+            nombre = nombre[:15] + "…"
+        sup_nombre = self.pequena_fuente.render(nombre, True, blanco)
+        rect_nombre = sup_nombre.get_rect(midtop=(rect.centerx, y_texto))
+        self.screen.blit(sup_nombre, rect_nombre)
+
+        y_desc = rect_nombre.bottom + 8
+        lineas = campeones.descripcion_seleccion(campeon_id)
+        self.escribir_lineas_apiladas(
+            lineas,
+            self.tarjeta_fuente,
+            color_hud,
+            rect.centerx,
+            y_desc,
+            espacio_extra=4,
+        )
 
     def dibujar_boton(self, rect, etiqueta, pos_mouse, activo=False):
         color = color_boton_activo if activo else gris_claro
@@ -178,7 +267,10 @@ class Juego:
             if resultado == "volver" or resultado is None:
                 continue
             if isinstance(resultado, list):
-                self.correr_partida(ids_campeones=resultado)
+                controles = self.seleccion_controles_local(jugadores_partida_local)
+                if controles == "volver":
+                    continue
+                self.correr_partida(ids_campeones=resultado, indices_esquema=controles)
 
     def seleccion_campeones(self, num_jugadores, titulo_jugador=None):
         ids = campeones.lista_ids()
@@ -189,11 +281,7 @@ class Juego:
             while ejecutando:
                 self.clock.tick(FPS)
                 pos_mouse = pygame.mouse.get_pos()
-                rects_campeones = []
-                inicio_x = 80
-                for cid in ids:
-                    rect = pygame.Rect(inicio_x + ids.index(cid) * 170, 200, 150, 180)
-                    rects_campeones.append((rect, cid))
+                rects_campeones = self._layout_tarjetas_campeones(ids)
 
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -213,18 +301,106 @@ class Juego:
                 encabezado = titulo_jugador or f"Jugador {paso + 1}: elige campeón"
                 self.escribir_texto(encabezado, self.texto_fuente, blanco, ventana_ancho // 2, 80)
                 for rect, cid in rects_campeones:
-                    campeon = campeones.obtener_campeon(cid)
-                    pygame.draw.rect(self.screen, gris_medio, rect)
-                    pygame.draw.rect(self.screen, blanco, rect, 2)
-                    preview = campeones.obtener_preview(cid)
-                    preview_rect = preview.get_rect(center=(rect.centerx, rect.centery - 10))
-                    self.screen.blit(preview, preview_rect)
-                    self.escribir_texto(campeon["nombre"], self.pequena_fuente, blanco, rect.centerx, rect.bottom - 20)
-                    esp = especiales.obtener_definicion(campeon["especial_id"])
-                    self.escribir_texto(esp["nombre"], self.pequena_fuente, color_hud, rect.centerx, rect.top + 20)
+                    resaltado = rect.collidepoint(pos_mouse)
+                    self._dibujar_tarjeta_campeon(rect, cid, resaltado=resaltado)
                 self.escribir_texto(texto_presiona_esc, self.pequena_fuente, color_hud, ventana_ancho // 2, ventana_alto - 30)
                 pygame.display.flip()
         return seleccion if len(seleccion) == num_jugadores else "volver"
+
+    def _elegir_esquema_controles(self, titulo, permitidos):
+        """Pantalla Flechas / WASD. permitidos: índices clicables (subconjunto de esquemas_elegibles)."""
+        centro_x = ventana_ancho // 2
+        ancho_panel = 280
+        alto_panel = 220
+        y_panel_top = 115
+        margen_btn = 14
+        separacion_btn_texto = 18
+        rects_opcion = []
+        for i, indice in enumerate(esquemas_elegibles):
+            x_centro = centro_x - 160 if i == 0 else centro_x + 160
+            panel = pygame.Rect(0, 0, ancho_panel, alto_panel)
+            panel.centerx = x_centro
+            panel.top = y_panel_top
+            rect_btn = pygame.Rect(0, 0, ancho_panel - 40, boton_alto)
+            rect_btn.centerx = panel.centerx
+            rect_btn.top = panel.top + margen_btn
+            rects_opcion.append((panel, rect_btn, indice, indice in permitidos))
+
+        while True:
+            self.clock.tick(FPS)
+            pos_mouse = pygame.mouse.get_pos()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return "volver"
+                    if event.key == pygame.K_1 and INDICE_ESQUEMA_FLECHAS in permitidos:
+                        return INDICE_ESQUEMA_FLECHAS
+                    if event.key == pygame.K_2 and INDICE_ESQUEMA_WASD in permitidos:
+                        return INDICE_ESQUEMA_WASD
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for _panel, rect_btn, indice, activo in rects_opcion:
+                        if activo and rect_btn.collidepoint(pos_mouse):
+                            return indice
+
+            self.screen.fill(gris_oscuro)
+            self.escribir_texto(titulo, self.texto_fuente, blanco, centro_x, 70)
+            for panel, rect_btn, indice, activo in rects_opcion:
+                color_panel = gris_medio if activo else (50, 50, 55)
+                pygame.draw.rect(self.screen, color_panel, panel)
+                pygame.draw.rect(self.screen, blanco if activo else gris_claro, panel, 2)
+                self.dibujar_boton(rect_btn, nombres_esquema[indice], pos_mouse, activo=activo)
+                lineas = descripcion_controles(indice)
+                y_linea = rect_btn.bottom + separacion_btn_texto
+                for linea in lineas[1:]:
+                    color_linea = color_hud if activo else gris_claro
+                    self.escribir_texto(linea, self.pequena_fuente, color_linea, panel.centerx, y_linea)
+                    y_linea += 24
+                if not activo:
+                    self.escribir_texto(
+                        "(ya elegido)",
+                        self.pequena_fuente,
+                        gris_claro,
+                        panel.centerx,
+                        panel.bottom - 16,
+                    )
+            self.escribir_texto(
+                "Tecla 1: Flechas  ·  Tecla 2: WASD",
+                self.pequena_fuente,
+                color_hud,
+                centro_x,
+                ventana_alto - 50,
+            )
+            self.escribir_texto(texto_presiona_esc, self.pequena_fuente, color_hud, centro_x, ventana_alto - 28)
+            pygame.display.flip()
+
+    def seleccion_controles_lan(self, titulo="Elige controles"):
+        resultado = self._elegir_esquema_controles(titulo, list(esquemas_elegibles))
+        if resultado == "volver":
+            return "volver"
+        self.indice_esquema_local = resultado
+        return resultado
+
+    def seleccion_controles_local(self, num_jugadores):
+        indices = []
+        for paso in range(num_jugadores):
+            if paso == 0:
+                permitidos = list(esquemas_elegibles)
+            else:
+                otro = (
+                    INDICE_ESQUEMA_WASD
+                    if indices[0] == INDICE_ESQUEMA_FLECHAS
+                    else INDICE_ESQUEMA_FLECHAS
+                )
+                permitidos = [otro]
+            titulo = f"Jugador {paso + 1}: elige controles"
+            resultado = self._elegir_esquema_controles(titulo, permitidos)
+            if resultado == "volver":
+                return "volver"
+            indices.append(resultado)
+        return indices
 
     def menu_crear_host(self):
         if not RED_DISPONIBLE:
@@ -242,6 +418,13 @@ class Juego:
         self.descubrimiento.iniciar()
 
         if self._sala_espera_host() == "partida_lan_host":
+            if self.seleccion_controles_lan("Host: elige controles") == "volver":
+                self._limpiar_red()
+                return "volver"
+            self.host_red.marcar_listo_controles(0)
+            if self._esperar_sincronizacion_lan(es_host=True) == "volver":
+                self._limpiar_red()
+                return "volver"
             self._correr_partida_host()
         self._limpiar_red()
         return "volver"
@@ -308,6 +491,13 @@ class Juego:
         self.cliente_red.enviar_unir(ids[0], "Jugador")
 
         if self._sala_espera_cliente() == "partida_lan_cliente":
+            if self.seleccion_controles_lan() == "volver":
+                self._limpiar_red()
+                return "volver"
+            self.cliente_red.enviar_listo_controles()
+            if self._esperar_sincronizacion_lan(es_host=False) == "volver":
+                self._limpiar_red()
+                return "volver"
             self._correr_partida_cliente()
         self._limpiar_red()
         return "volver"
@@ -335,7 +525,7 @@ class Juego:
                     return "volver"
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if boton_iniciar.collidepoint(pos_mouse) and self.host_red.puede_iniciar():
-                        self.host_red.iniciar_partida()
+                        self.host_red.preparar_partida()
                         pygame.event.set_allowed(None)
                         return "partida_lan_host"
 
@@ -383,7 +573,7 @@ class Juego:
                 self._mensaje_temporal("Conexión perdida.")
                 return "volver"
 
-            if self.cliente_red.partida_iniciada:
+            if self.cliente_red.preparando_controles:
                 return "partida_lan_cliente"
 
             for event in pygame.event.get():
@@ -414,6 +604,65 @@ class Juego:
             self.escribir_texto(texto_presiona_esc, self.pequena_fuente, color_hud, ventana_ancho // 2, ventana_alto - 30)
             pygame.display.flip()
 
+    def _esperar_sincronizacion_lan(self, es_host):
+        """Espera a que todos confirmen controles; el host envía comenzar al estar listos."""
+        while True:
+            self.clock.tick(FPS)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return "volver"
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    return "volver"
+
+            if es_host:
+                self.host_red.procesar_mensajes_clientes()
+                if self.host_red.todos_listos_controles():
+                    self.host_red.comenzar_partida()
+                    return "ok"
+                estado = self.host_red.copia_estado_listos_controles()
+            else:
+                self.cliente_red.procesar_mensajes()
+                if not self.cliente_red.conectado:
+                    self._mensaje_temporal("Conexión perdida.")
+                    return "volver"
+                if self.cliente_red.partida_iniciada:
+                    return "ok"
+                estado = None
+
+            self.screen.fill(gris_oscuro)
+            self.escribir_texto(
+                texto_esperando_controles_lan,
+                self.texto_fuente,
+                blanco,
+                ventana_ancho // 2,
+                80,
+            )
+            if estado is not None:
+                y = 140
+                for jid, nombre, listo in estado:
+                    marca = texto_listo_controles if listo else texto_pendiente_controles
+                    linea = f"  P{jid + 1}: {nombre} — {marca}"
+                    sup = self.pequena_fuente.render(linea, True, color_hud if listo else gris_claro)
+                    self.screen.blit(sup, (120, y))
+                    y += 28
+            else:
+                self.escribir_texto(
+                    "Tus controles están listos.",
+                    self.pequena_fuente,
+                    color_hud,
+                    ventana_ancho // 2,
+                    150,
+                )
+                self.escribir_texto(
+                    "Esperando al host y al resto de jugadores...",
+                    self.pequena_fuente,
+                    color_hud,
+                    ventana_ancho // 2,
+                    185,
+                )
+            self.escribir_texto(texto_presiona_esc, self.pequena_fuente, color_hud, ventana_ancho // 2, ventana_alto - 30)
+            pygame.display.flip()
+
     def _mensaje_temporal(self, mensaje, segundos=2.5):
         fin = pygame.time.get_ticks() + int(segundos * 1000)
         while pygame.time.get_ticks() < fin:
@@ -427,60 +676,107 @@ class Juego:
                 self.escribir_texto(linea, self.texto_fuente, blanco, ventana_ancho // 2, 280 + i * 40)
             pygame.display.flip()
 
-    def _crear_jugadores_desde_lobby(self, lista):
+    def _crear_jugadores_desde_lobby(self, lista, mi_id):
         jugadores = []
         for datos in lista:
+            esquema = self.indice_esquema_local if datos["id"] == mi_id else INDICE_ESQUEMA_FLECHAS
             jugadores.append(
                 campeones.Jugador(
-                    datos["id"], datos["campeon_id"], indice_spawn=datos["id"], es_lan=True
+                    datos["id"],
+                    datos["campeon_id"],
+                    indice_spawn=datos["id"],
+                    indice_esquema=esquema,
                 )
             )
         return jugadores
 
-    def correr_partida(self, ids_campeones=None, es_host=False, es_cliente=False):
+    def correr_partida(self, ids_campeones=None, indices_esquema=None, es_host=False, es_cliente=False):
         if es_host:
             self._correr_partida_host()
         elif es_cliente:
             self._correr_partida_cliente()
         else:
-            self._correr_partida_local(ids_campeones)
+            self._correr_partida_local(ids_campeones, indices_esquema)
 
-    def _correr_partida_local(self, ids_campeones):
+    def _correr_partida_local(self, ids_campeones, indices_esquema):
         mapa = Mapa()
         gestor_bombas = GestorBombas()
-        jugadores = campeones.crear_jugadores_local(ids_campeones)
-        self._bucle_partida(mapa, gestor_bombas, jugadores, es_host=False, mi_id=None)
+        gestor_powerups = GestorPowerups()
+        gestor_bombas.gestor_powerups = gestor_powerups
+        jugadores = campeones.crear_jugadores_local(ids_campeones, indices_esquema)
+        self._bucle_partida(
+            mapa, gestor_bombas, gestor_powerups, jugadores, es_host=False, mi_id=None
+        )
 
     def _correr_partida_host(self):
         semilla = self.host_red.semilla_mapa
         mapa = Mapa(semilla=semilla)
         gestor_bombas = GestorBombas()
-        jugadores = self._crear_jugadores_desde_lobby(self.host_red.jugadores)
+        gestor_powerups = GestorPowerups()
+        gestor_bombas.gestor_powerups = gestor_powerups
+        jugadores = self._crear_jugadores_desde_lobby(self.host_red.jugadores, mi_id=0)
         especiales.reiniciar()
         gestor_bombas.reiniciar()
-        self._bucle_partida(mapa, gestor_bombas, jugadores, es_host=True, mi_id=0)
+        gestor_powerups.reiniciar()
+        self._bucle_partida(
+            mapa, gestor_bombas, gestor_powerups, jugadores, es_host=True, mi_id=0
+        )
 
     def _correr_partida_cliente(self):
         semilla = self.cliente_red.semilla_mapa
         mapa = Mapa(semilla=semilla)
         gestor_bombas = GestorBombas()
-        jugadores = self._crear_jugadores_desde_lobby(self.cliente_red.lobby_jugadores)
+        gestor_powerups = GestorPowerups()
+        gestor_bombas.gestor_powerups = gestor_powerups
+        jugadores = self._crear_jugadores_desde_lobby(
+            self.cliente_red.lobby_jugadores, mi_id=self.cliente_red.jugador_id
+        )
         especiales.reiniciar()
         gestor_bombas.reiniciar()
+        gestor_powerups.reiniciar()
         mi_id = self.cliente_red.jugador_id
-        self._bucle_partida(mapa, gestor_bombas, jugadores, es_host=False, mi_id=mi_id, es_cliente=True)
+        self._bucle_partida(
+            mapa,
+            gestor_bombas,
+            gestor_powerups,
+            jugadores,
+            es_host=False,
+            mi_id=mi_id,
+            es_cliente=True,
+        )
 
-    def _bucle_partida(self, mapa, gestor_bombas, jugadores, es_host=False, mi_id=None, es_cliente=False):
+    def _bucle_partida(
+        self,
+        mapa,
+        gestor_bombas,
+        gestor_powerups,
+        jugadores,
+        es_host=False,
+        mi_id=None,
+        es_cliente=False,
+    ):
+        sonido.musica_partida()
         partida_activa = True
         mensaje_fin = None
         pausa_fin_ms = 0
-        ultimo_sync = 0
+        ultimo_sync_pos = -intervalo_sync_pos_ms
+        ultimo_sync_completo = -intervalo_sync_respaldo_ms
         pulso_bomba = False
         pulso_especial = False
+        reloj = red_eventos.RelojHost()
+        prediccion = red_eventos.EstadoPrediccion()
+        host_red = self.host_red if es_host else None
+        en_lan = es_host or es_cliente
+        moviendo_antes = {j.jugador_id: j.moviendo for j in jugadores} if es_host else {}
+
+        if en_lan:
+            gestor_bombas.on_dano = lambda j, t: _on_dano_lan(j, t, host_red)
+        gestor_bombas.host_red = host_red if es_host else None
 
         while partida_activa:
             self.clock.tick(FPS)
-            ahora_ms = pygame.time.get_ticks()
+            ahora_local = pygame.time.get_ticks()
+            ahora_ms = reloj.ahora_host(ahora_local) if es_cliente else ahora_local
             teclas = pygame.key.get_pressed()
 
             for event in pygame.event.get():
@@ -494,6 +790,7 @@ class Juego:
                         if yo and yo.esta_vivo:
                             if event.key == yo.teclas["bomba"]:
                                 pulso_bomba = True
+                                yo.solicitar_bomba()
                             if event.key == yo.teclas["especial"]:
                                 pulso_especial = True
                     elif not es_cliente:
@@ -502,10 +799,12 @@ class Juego:
                                 continue
                             if es_host and jugador.jugador_id != 0:
                                 continue
-                            if event.key == jugador.teclas["bomba"] and jugador.esta_alineado():
-                                gestor_bombas.colocar(jugador.columna, jugador.fila, jugador)
+                            if event.key == jugador.teclas["bomba"]:
+                                jugador.solicitar_bomba()
                             if event.key == jugador.teclas["especial"] and jugador.esta_alineado():
-                                especiales.usar_especial(jugador, jugadores, mapa, ahora_ms)
+                                red_eventos.usar_especial_con_evento(
+                                    jugador, jugadores, mapa, ahora_ms, host_red
+                                )
 
             if es_cliente and self.cliente_red:
                 self.cliente_red.procesar_mensajes()
@@ -515,27 +814,50 @@ class Juego:
                 if self.cliente_red.mensaje_fin and mensaje_fin is None:
                     g = self.cliente_red.mensaje_fin
                     mensaje_fin = texto_ganador.format(nombre=g.get("nombre", "?"))
-                    pausa_fin_ms = ahora_ms + 2500
-                if self.cliente_red.ultimo_estado and mensaje_fin is None:
-                    _sincronizar_desde_host(
-                        self.cliente_red.ultimo_estado, mapa, jugadores, gestor_bombas, ahora_ms
-                    )
+                    pausa_fin_ms = ahora_local + 2500
+                for ev in self.cliente_red.obtener_eventos_pendientes():
+                    if mensaje_fin is None:
+                        red_eventos.aplicar_evento(
+                            ev,
+                            mapa,
+                            jugadores,
+                            gestor_bombas,
+                            ahora_ms,
+                            mi_id=mi_id,
+                            prediccion=prediccion,
+                            reloj=reloj,
+                            gestor_powerups=gestor_powerups,
+                        )
                 yo = next((j for j in jugadores if j.jugador_id == mi_id), None)
                 if yo and yo.esta_vivo and mensaje_fin is None:
                     entrada = _teclas_a_entrada(teclas, yo)
                     entrada["bomba"] = pulso_bomba
                     entrada["especial"] = pulso_especial
+                    entrada["t_local"] = ahora_local
                     self.cliente_red.enviar_entrada(entrada)
                 pulso_bomba = False
                 pulso_especial = False
 
-            elif mensaje_fin is None:
+            if mensaje_fin is None:
                 if es_host:
                     self.host_red.procesar_mensajes_clientes()
 
+                if es_cliente:
+                    yo = next((j for j in jugadores if j.jugador_id == mi_id), None)
+                    _prediccion_cliente(yo, teclas, mapa, gestor_bombas, ahora_ms, prediccion)
+
                 for jugador in jugadores:
-                    if not es_cliente:
-                        jugador.actualizar_movimiento(ahora_ms)
+                    jugador.actualizar_movimiento(ahora_ms)
+
+                if es_host:
+                    for jugador in jugadores:
+                        jid = jugador.jugador_id
+                        if moviendo_antes.get(jid, False) and not jugador.moviendo:
+                            red_eventos.emitir_desde_host(
+                                host_red,
+                                red_eventos.crear_correccion(jugador, ahora_ms),
+                            )
+                        moviendo_antes[jid] = jugador.moviendo
 
                 for jugador in jugadores:
                     if not jugador.esta_vivo:
@@ -543,32 +865,63 @@ class Juego:
                     if es_host and jugador.jugador_id != 0:
                         entrada = self.host_red.obtener_entrada(jugador.jugador_id)
                         _aplicar_entrada_red(
-                            jugador, entrada, mapa, gestor_bombas, jugadores, ahora_ms
+                            jugador,
+                            entrada,
+                            mapa,
+                            gestor_bombas,
+                            jugadores,
+                            ahora_ms,
+                            host_red=host_red,
                         )
                         self.host_red.limpiar_pulso_entrada(jugador.jugador_id)
-                    else:
-                        jugador.procesar_movimiento(teclas, mapa, gestor_bombas, ahora_ms)
+                    elif not es_cliente:
+                        _procesar_movimiento_local(
+                            jugador, teclas, mapa, gestor_bombas, ahora_ms, host_red
+                        )
+
+                for jugador in jugadores:
+                    if jugador.esta_vivo:
+                        if es_host:
+                            red_eventos.intentar_bomba_con_evento(
+                                jugador, gestor_bombas, ahora_ms, host_red
+                            )
+                        else:
+                            jugador.intentar_colocar_bomba_pendiente(gestor_bombas)
+
+                if not es_cliente:
+                    gestor_powerups.actualizar_recogidas(
+                        jugadores, ahora_ms, host_red=host_red
+                    )
 
                 gestor_bombas.actualizar(mapa, jugadores, ahora_ms)
                 especiales.actualizar_ataques(ahora_ms)
 
-                ganador = campeones.obtener_ganador(jugadores)
-                if ganador:
-                    mensaje_fin = texto_ganador.format(nombre=ganador.nombre)
-                    pausa_fin_ms = ahora_ms + 2500
-                    if es_host:
-                        self.host_red.enviar_fin(ganador.jugador_id, ganador.nombre)
-                elif campeones.contar_vivos(jugadores) == 0:
-                    mensaje_fin = texto_empate
-                    pausa_fin_ms = ahora_ms + 2500
+                if not es_cliente:
+                    ganador = campeones.obtener_ganador(jugadores)
+                    if ganador:
+                        mensaje_fin = texto_ganador.format(nombre=ganador.nombre)
+                        pausa_fin_ms = ahora_local + 2500
+                        if es_host:
+                            self.host_red.enviar_fin(ganador.jugador_id, ganador.nombre)
+                    elif campeones.contar_vivos(jugadores) == 0:
+                        mensaje_fin = texto_empate
+                        pausa_fin_ms = ahora_local + 2500
 
-                if es_host and ahora_ms - ultimo_sync >= intervalo_sync_red_ms:
-                    self.host_red.enviar_estado(
-                        _serializar_estado(mapa, jugadores, gestor_bombas)
-                    )
-                    ultimo_sync = ahora_ms
+                if es_host:
+                    if ahora_local - ultimo_sync_pos >= intervalo_sync_pos_ms:
+                        self.host_red.enviar_evento(
+                            red_eventos.serializar_posiciones(jugadores, ahora_ms)
+                        )
+                        ultimo_sync_pos = ahora_local
+                    if ahora_local - ultimo_sync_completo >= intervalo_sync_respaldo_ms:
+                        self.host_red.enviar_evento(
+                            red_eventos.serializar_sync(
+                                mapa, jugadores, gestor_bombas, gestor_powerups
+                            )
+                        )
+                        ultimo_sync_completo = ahora_local
 
-            if mensaje_fin and ahora_ms > pausa_fin_ms:
+            if mensaje_fin and ahora_local > pausa_fin_ms:
                 partida_activa = False
 
             for jugador in jugadores:
@@ -577,6 +930,7 @@ class Juego:
             self.screen.fill(negro)
             mapa.dibujar_mapa(self.screen)
             gestor_bombas.dibujar(self.screen, ahora_ms)
+            gestor_powerups.dibujar(self.screen, ahora_ms)
             especiales.dibujar_ataques(self.screen, mapa_offset_x, mapa_offset_y)
             for jugador in jugadores:
                 jugador.dibujar(self.screen, ahora_ms)
@@ -589,6 +943,8 @@ class Juego:
                 self.escribir_texto(texto_presiona_esc, self.pequena_fuente, color_hud, ventana_ancho // 2, ventana_alto - 20)
 
             pygame.display.flip()
+
+        sonido.musica_menu()
 
 
 if __name__ == "__main__":

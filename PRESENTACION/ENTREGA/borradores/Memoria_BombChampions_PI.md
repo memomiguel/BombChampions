@@ -76,22 +76,21 @@ El producto está en fase de MVP, que significa producto mínimo viable (Minimum
 | Generación y dibujo del mapa (17×21 celdas) | Logrado |
 | Sistema de bombas y explosiones | Logrado |
 | Campeones con parámetros y habilidades especiales | Logrado (en ampliación) |
-| Multijugador LAN (crear/buscar partida, sincronización) | Implementado; requiere pruebas en red real |
-| Assets gráficos y música coherentes con el estilo del juego | Logrado (Gabriel Celis); integración en Pygame en ampliación |
+| Multijugador LAN (crear/buscar partida, sincronización) | Implementado |
+| Assets gráficos y música coherentes con el estilo del juego | Logrado (Gabriel Celis)|
 | Documentar decisiones técnicas y manual de usuario | En curso (esta memoria) |
 
 ---
 
 ## 5. Justificación de la opción elegida
 
-Se ha elegido trabajar con Python, Pygame, PyCharm, Piskel, Photopea y BeepBox por las razones siguientes:
+Se ha elegido trabajar con Python, Pygame, PyCharm, Piskel y BeepBox por las razones siguientes:
 
 1. El ciclo SMR incluye programación en Python y fundamentos de redes; el proyecto demuestra ambos.
 2. Python, Pygame, PyCharm Community, Piskel y BeepBox no requieren licencias de pago, se pueden usar gratuitamente.
 3. Piskel encaja con el estilo retro del juego, es facil crear los sprites pixelados que usamos en el proyecto.
-4. Photopea es un programa de edicion de imagenes que se enseño el año pasado. Se uso para montar la portada del juego.
-5. BeepBox es una herramienta en linea que facilita mucho la creacion de musica para el juego. Se enfoca en un estilo retro.
-6. Multijugador LAN: Implementacion basica de redes. Se necesita conicimiento de IPs, Firewall, sockets, puertos, y demas para que funcione el juego.
+4. BeepBox es una herramienta en linea que facilita mucho la creacion de musica para el juego. Se enfoca en un estilo retro.
+5. Multijugador LAN: Implementacion basica de redes. Se necesita conicimiento de IPs, Firewall, sockets, puertos, y demas para que funcione el juego.
 
 ### 5.1. Uso de inteligencia artificial en el desarrollo
 
@@ -117,10 +116,6 @@ Un programador que rechaza por completo el uso de IA en el flujo de trabajo pued
 
 En el sector la IA no sustituye al desarrollador: amplía su alcance. La habilidad valorada es saber qué pedir, comprobar el resultado y asumir la responsabilidad del código y la documentación entregados.
 
-#### Uso de IA en el trabajo de Gabriel Celis
-
-Gabriel ha usado IA solo en una parte concreta: el **fondo del menú principal**. Para esa imagen pidió ayuda a ChatGPT y luego la adaptó al estilo del juego. Los personajes, el mapa, la bomba, las explosiones y el resto de sprites los ha hecho él en Piskel, cambiando paletas sobre una plantilla encontrada en internet, no generada por IA.
-
 ---
 
 
@@ -140,7 +135,6 @@ Gabriel ha usado IA solo en una parte concreta: el **fondo del menú principal**
 | **PyCharm** | IDE: edición, depuración, entorno virtual |
 | **Git** | Control de versiones del repositorio del proyecto |
 | **Piskel** | Sprites pixel art |
-| **Photopea** | Diseño de la portada del proyecto y juego |
 | **BeepBox** | Música y efectos en estilo retro |
 
 ### 6.3. Servicios en línea
@@ -230,13 +224,11 @@ BombChampions/
 
 ### 7.4. Diseño gráfico y assets (Gabriel Celis)
 
-*Fuente ampliada: `PRESENTACION/gabo.docx`*
+La herramienta principal ha sido Piskel. Por experiencia es la más fácil de entender.
 
-La herramienta principal ha sido **Piskel**. Por experiencia es la más fácil de entender y la que Gabriel ya había usado antes.
+Se creo cuatro personajes donde lo que más destaca es la vestimenta: para cada uno ha usado una paleta distinta con tonos claros y oscuros de azul, rojo, amarillo y negro. El boceto base no se hizo la IA, se encontró una plantilla en internet y lo que tocaba era cambiar la paleta y hacer que la animación funcionara en Piskel. El tamaño del sprite es 33×45 píxeles para que el personaje entre entero en el lienzo.
 
-Ha creado **cuatro personajes** donde lo que más destaca es la vestimenta: para cada uno ha usado una paleta distinta con tonos claros y oscuros de **azul, rojo, amarillo y negro**. El boceto base no lo hizo la IA; encontró una plantilla en internet y lo que tocaba era cambiar la paleta y hacer que la animación funcionara en Piskel. El tamaño del sprite es **33×45 píxeles** para que el personaje entre entero en el lienzo.
-
-También se encargó del **suelo**, las **paredes de ladrillo** (destructibles), los **bloques de hierro** (indestructibles), la **bomba**, las **explosiones**, los **corazones** y algún **item especial**.
+También se encargó del suelo, las paredes de ladrillo (destructibles), los bloques de hierro (indestructibles), la bomba, las explosiones, los corazones y algún item especial.
 
 #### Animación en Piskel
 
@@ -244,13 +236,13 @@ Hacer una animación es tan sencillo como dibujar el frame que quieras, abrir ot
 
 #### Fondo del menú (IA)
 
-El único apartado gráfico hecho con ayuda de IA es el **fondo de inicio**. Para esa imagen ChatGPT ayudó a generar la base; después se adaptó al menú del juego.
+El único apartado gráfico hecho con ayuda de IA es el fondo de inicio. Para esa imagen ChatGPT ayudó a generar la base, después se adaptó al menú del juego.
 
 #### Problema con GIFs de muchos colores
 
 Al exportar una animación con demasiados colores distintos, Piskel daba error y el GIF no servía bien.
 
-**Solución:** en el código no hace falta un GIF. Se exporta cada frame como **PNG** y el juego los muestra uno a uno (spritesheet o secuencia de imágenes), igual que comentamos en las dificultades del apartado 9.
+Solución: en el código no hace falta un GIF. Se exporta cada frame como PNG y el juego los muestra uno a uno (spritesheet o secuencia de imágenes), igual que comentamos en las dificultades del apartado 9.
 
 #### Assets principales en `assets/`
 
@@ -267,17 +259,15 @@ Al exportar una animación con demasiados colores distintos, Piskel daba error y
 
 ### 7.5. Música y sonido (Gabriel Celis)
 
-*Fuente ampliada: `PRESENTACION/gabo.docx`*
+Para el audio se ha usado BeepBox. Permite crear instrumentales de forma muy sencilla, en menos de cinco minutos se puede tener algo usable para un juego retro.
 
-Para el audio se ha usado **BeepBox**. Permite crear instrumentales de forma muy sencilla; en menos de cinco minutos se puede tener algo usable para un juego retro.
+Se ha creado los sonidos que el proyecto necesita:
 
-Gabriel ha creado los sonidos que el proyecto necesita:
+- Instrumental de partida (mientras se juega).
+- Sonido de la bomba.
+- Sonido de la interfaz (menú y botones).
 
-- Instrumental de **partida** (mientras se juega).
-- Sonido de la **bomba**.
-- Sonido de la **interfaz** (menú y botones).
-
-BeepBox es fácil de usar: cada fila de instrumentos lleva un **número**. Todas las filas marcadas con el mismo número repiten el mismo patrón; si cambias a otro número puedes añadir otra capa sin cortar la primera. Así se monta la pista por capas.
+BeepBox es fácil de usar: cada fila de instrumentos lleva un número. Todas las filas marcadas con el mismo número repiten el mismo patrón, si cambias a otro número puedes añadir otra capa sin cortar la primera. Así se monta la pista por capas.
 
 La integración final en Pygame (cargar `.wav` o `.ogg` en menú y partida) sigue el mismo camino que el resto del código; los archivos de audio se añaden al proyecto cuando la partida los reproduce.
 
@@ -285,9 +275,7 @@ La integración final en Pygame (cargar `.wav` o `.ogg` en menú y partida) sigu
 
 ### 7.6. Diseño visual de personajes / campeones (Gabriel Celis)
 
-*Fuente ampliada: `PRESENTACION/gabo.docx`*
-
-El diseño general de los personajes sale de **referencias encontradas en internet**. Lo que Gabriel ha hecho es cambiarles los colores para que se distingan bien en la arena de Bomb Champions: azul, rojo, amarillo y el personaje de chaqueta negra.
+El diseño general de los personajes sale de referencias encontradas en internet. Lo que se ha hecho es cambiarles los colores para que se distingan bien en la arena de Bomb Champions: azul, rojo, amarillo y el personaje de chaqueta negra.
 
 | Campeón | Prefijo sprite | Detalle visual |
 |---------|----------------|----------------|
@@ -298,9 +286,9 @@ El diseño general de los personajes sale de **referencias encontradas en intern
 
 #### CuchillasPJ e inspiración en Valorant
 
-La idea del personaje de chaqueta negra y sus habilidades viene de **Jett**, de Valorant. No es una copia: en Valorant Jett usa kunais; en Bomb Champions **CuchillasPJ** lanza **cuchillos / ondas** adaptados al estilo Bomberman (la lógica del especial está en `especiales.py`). El diseño de las cuchillas es propio del proyecto, no el de Jett tal cual.
+La idea del personaje de chaqueta negra y sus habilidades viene de Jett, de Valorant. No es una copia: en Valorant Jett usa kunais; en Bomb Champions CuchillasPJ lanza cuchillos / ondas adaptados al estilo Bomberman (la lógica del especial está en `especiales.py`). El diseño de las cuchillas es propio del proyecto, no el de Jett tal cual.
 
-Cada campeón tiene sprites por **dirección** (arriba, abajo, izquierda, derecha) y animaciones de **idle** y **walk** exportadas desde Piskel.
+Cada campeón tiene sprites por dirección (arriba, abajo, izquierda, derecha) y animaciones de idle y walk exportadas desde Piskel.
 
 ---
 
@@ -312,19 +300,19 @@ El juego no salió terminado de golpe. Estas capturas muestran cómo fue mejoran
 
 #### Versión 1 — MVP jugable
 
-Juego mínimamente funcional: sprites **estáticos**, movimiento tosco, pero **se podía jugar** y ya había **condición de victoria**. La interfaz era muy básica. No había power-ups ni habilidades especiales; cada personaje tenía **una sola bomba** con alcance limitado y fijo.
+Juego mínimamente funcional: sprites estáticos, movimiento tosco, pero se podía jugar y ya había condición de victoria. La interfaz era muy básica. No había power-ups ni habilidades especiales; cada personaje tenía una sola bomba con alcance limitado y fijo.
 
 *[Figura: captura versión 1 — ver docx de evolución]*
 
 #### Versión 2 — Menú y selección de campeones
 
-Se añadió **HUD** en partida, **fondo en el menú principal** (con ayuda de IA en esa imagen) y en la pantalla de selección ya se **ven los campeones** antes de entrar al mapa.
+Se añadió HUD en partida, fondo en el menú principal (con ayuda de IA en esa imagen) y en la pantalla de selección ya se ven los campeones antes de entrar al mapa.
 
 *[Figura: captura versión 2 — ver docx de evolución]*
 
 #### Versión actual — partida completa
 
-A partir de ahí se integraron bombas con explosión animada, más campeones, movimiento más fluido entre casillas, multijugador LAN y assets de Gabriel (mapa, personajes, sonidos). El repositorio en **GitHub** concentra el código y las carpetas `assets/` de ambos integrantes.
+A partir de ahí se integraron bombas con explosión animada, más campeones, movimiento más fluido entre casillas, multijugador LAN y assets de Gabriel (mapa, personajes, sonidos). El repositorio en GitHub concentra el código y las carpetas `assets/` de ambos integrantes.
 
 *[Figuras: capturas de partida y repositorio — ver docx de evolución]*
 
@@ -379,9 +367,9 @@ En red, cada jugador está en su propio PC, pero al principio el juego seguía l
 
 Al principio el movimiento del personaje estaba ligado directamente a la cuadrícula del mapa: cada pulsación de tecla cambiaba al instante la fila y la columna lógicas, y el sprite se dibujaba siempre alineado a una casilla. Visualmente parecía un teletransporte, no un desplazamiento continuo, y chocaba con las animaciones de caminata que habíamos añadido con spritesheets. La solución fue separar la posición lógica en el grid (para bombas, colisiones y multijugador) de la posición en píxeles en pantalla, interpolando entre casillas mientras el jugador se mueve. Así el personaje recorre la celda de forma fluida y la animación de walk/idle encaja con el movimiento real.
 
-### Diseño gráfico y audio (Gabriel Celis)
+### Diseño gráfico y audio
 
-Al principio la versión 1 del juego casi no tenía interfaz: solo mapa y personajes con sprites estáticos. Fue un reto pasar a menú con fondo, selección de campeones visibles y HUD en partida sin que el estilo pixel art se desordenara. BeepBox ayudó a tener sonido rápido, pero encajar instrumental, bomba e interfaz en el juego sigue siendo trabajo de integración con el código de Miguel.
+Al principio la versión 1 del juego casi no tenía interfaz: solo mapa y personajes con sprites estáticos. Fue un reto pasar a menú con fondo, selección de campeones visibles y HUD en partida sin que el estilo pixel art se desordenara. BeepBox ayudó a tener sonido rápido, pero encajar instrumental, bomba e interfaz en el juego sigue siendo trabajo de integración con el código.
 
 ---
 
@@ -403,11 +391,8 @@ Bomb Champions une programación, redes y diseño en un mismo proyecto. No está
 
 ## 11. Posibles mejoras
 
-- Nuevos campeones con habilidades distintas (escudo, teleport, etc.).
+- Nuevos campeones con habilidades distintas (escudo, teletransporte, etc.).
 - **IA** para enemigos en modo solitario.
-- **Sonido** completo (música de menú y efectos sincronizados).
-- **Empaquetado** con PyInstaller para un solo `.exe`.
-- **Mejoras de red:** predicción de movimiento, chat en sala, más de 4 jugadores.
 - **Mapas** alternativos y editor de niveles.
 - **Interfaz** más pulida (animaciones de menú, tutorial integrado).
 

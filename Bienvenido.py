@@ -1,1 +1,0 @@
-#Este es el repositorio de BombChampions de Miguel y Gabriel

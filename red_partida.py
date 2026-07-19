@@ -116,7 +116,9 @@ class HostPartida:
         self._lock = threading.Lock()
         self.jugadores = []
         self.partida_iniciada = False
+        self.preparando_controles = False
         self.semilla_mapa = None
+        self._listos_controles = set()
         self._cola_eventos = queue.Queue()
 
     def iniciar(self):
@@ -155,7 +157,11 @@ class HostPartida:
 
     def puede_iniciar(self):
         with self._lock:
-            return len(self.jugadores) >= min_jugadores_lan and not self.partida_iniciada
+            return (
+                len(self.jugadores) >= min_jugadores_lan
+                and not self.partida_iniciada
+                and not self.preparando_controles
+            )
 
     def obtener_ip(self):
         return obtener_ip_local()
@@ -287,11 +293,30 @@ class HostPartida:
                         "bomba": bool(msg.get("bomba")),
                         "especial": bool(msg.get("especial")),
                     }
+                elif msg.get("tipo") == "listo_controles" and cliente.jugador_id is not None:
+                    self.marcar_listo_controles(cliente.jugador_id)
+
+    def marcar_listo_controles(self, jugador_id):
+        with self._lock:
+            self._listos_controles.add(jugador_id)
+
+    def todos_listos_controles(self):
+        with self._lock:
+            ids = {j["id"] for j in self.jugadores}
+            return ids <= self._listos_controles
+
+    def copia_estado_listos_controles(self):
+        with self._lock:
+            return [
+                (j["id"], j["nombre"], j["id"] in self._listos_controles)
+                for j in self.jugadores
+            ]
 
     def _eliminar_jugador(self, jid):
         with self._lock:
             self.jugadores = [j for j in self.jugadores if j["id"] != jid]
             self._clientes = [c for c in self._clientes if c.jugador_id != jid]
+            self._listos_controles.discard(jid)
         self._enviar_lobby_todos()
 
     def obtener_entrada(self, jugador_id):
@@ -310,13 +335,16 @@ class HostPartida:
                     cliente.entrada["bomba"] = False
                     cliente.entrada["especial"] = False
 
-    def iniciar_partida(self):
+    def preparar_partida(self):
+        """Semilla y lobby a clientes; todos eligen controles antes de comenzar."""
         if not self.puede_iniciar():
             return False
-        self.partida_iniciada = True
+        self.preparando_controles = True
         self.semilla_mapa = random.randint(1, 999999)
+        with self._lock:
+            self._listos_controles.clear()
         mensaje = {
-            "tipo": "inicio",
+            "tipo": "preparar",
             "semilla": self.semilla_mapa,
             "jugadores": self._lista_lobby(),
         }
@@ -326,12 +354,24 @@ class HostPartida:
             cliente.enviar(mensaje)
         return True
 
-    def enviar_estado(self, estado):
-        mensaje = {"tipo": "estado", **estado}
+    def comenzar_partida(self):
+        """Arranca la simulación cuando todos han confirmado controles."""
+        if self.partida_iniciada or not self.todos_listos_controles():
+            return False
+        self.preparando_controles = False
+        self.partida_iniciada = True
+        mensaje = {"tipo": "comenzar"}
+        with self._lock:
+            clientes = [c for c in self._clientes if c.jugador_id is not None]
+        for cliente in clientes:
+            cliente.enviar(mensaje)
+        return True
+
+    def enviar_evento(self, evento):
         with self._lock:
             clientes = [c for c in self._clientes if c.jugador_id is not None and not c.caido]
         for cliente in clientes:
-            cliente.enviar(mensaje)
+            cliente.enviar(evento)
 
     def enviar_fin(self, ganador_id, nombre_ganador):
         mensaje = {
@@ -355,8 +395,9 @@ class ClientePartida:
         self.nombre_sala = ""
         self.lobby_jugadores = []
         self.partida_iniciada = False
+        self.preparando_controles = False
         self.semilla_mapa = None
-        self.ultimo_estado = None
+        self.eventos_pendientes = []
         self.mensaje_fin = None
         self.conectado = False
 
@@ -399,6 +440,14 @@ class ClientePartida:
         datos = {"tipo": "entrada", "jugador_id": self.jugador_id, **entrada}
         _enviar_linea(self._socket, datos)
 
+    def enviar_listo_controles(self):
+        if self.jugador_id is None:
+            return
+        _enviar_linea(
+            self._socket,
+            {"tipo": "listo_controles", "jugador_id": self.jugador_id},
+        )
+
     def procesar_mensajes(self):
         while True:
             try:
@@ -413,11 +462,21 @@ class ClientePartida:
                 self.conectado = False
             elif tipo == "lobby":
                 self.lobby_jugadores = msg.get("jugadores", [])
-            elif tipo == "inicio":
-                self.partida_iniciada = True
+            elif tipo == "preparar":
+                self.preparando_controles = True
                 self.semilla_mapa = msg.get("semilla")
                 self.lobby_jugadores = msg.get("jugadores", [])
-            elif tipo == "estado":
-                self.ultimo_estado = msg
+                self.eventos_pendientes.clear()
+            elif tipo == "comenzar":
+                self.partida_iniciada = True
+                self.preparando_controles = False
+                self.eventos_pendientes.clear()
             elif tipo == "fin":
                 self.mensaje_fin = msg
+            else:
+                self.eventos_pendientes.append(msg)
+
+    def obtener_eventos_pendientes(self):
+        copia = list(self.eventos_pendientes)
+        self.eventos_pendientes.clear()
+        return copia

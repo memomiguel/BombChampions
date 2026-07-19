@@ -36,6 +36,7 @@ tamano_titulo = 64
 tamano_boton = 32
 tamano_texto = 24
 tamano_pequeno = 18
+tamano_tarjeta_campeon = 14
 
 # --- MENÚ ---
 boton_ancho = 280
@@ -47,6 +48,13 @@ menu_overlay_alpha = 120
 # --- MAPA ---
 carpeta_assets = os.path.join(_directorio_base(), "assets") + os.sep
 ruta_fondo_menu = carpeta_assets + "FONDO BOMB CHAMPIOS.png"
+
+# --- AUDIO ---
+ruta_musica_menu = carpeta_assets + "BombChampions_MainMenu.ogg"
+ruta_musica_partida = carpeta_assets + "BombChampions_Enhanced.ogg"
+ruta_sonido_explosion = carpeta_assets + "SONIDO BOMBA.ogg"
+volumen_musica = 0.5
+volumen_efectos = 0.7
 
 # --- SPRITES CAMPEÓN ---
 frames_campeon = 4
@@ -105,7 +113,7 @@ ventana_alto = mapa_offset_y + mapa_alto_px + hud_banda_fuera_mapa + altura_pie_
 # --- BOMBAS ---
 tiempo_bomba_ms = 3000
 duracion_explosion_ms = 400
-alcance_explosion = 2  # Casillas en cada dirección desde el centro
+alcance_explosion = 1  # Casillas en cada dirección desde el centro
 max_bombas_por_jugador = 1
 ruta_sprite_bomba = carpeta_assets + "Bomba.png"
 ruta_sprite_explosion = carpeta_assets + "EXPLOCION.png"
@@ -113,6 +121,24 @@ frames_bomba = 10
 bomba_grilla_columnas = 3
 bomba_grilla_filas = 4
 frames_explosion = 5
+
+# --- POWERUPS ---
+probabilidad_powerup_caja = 30
+max_bombas_powerup = 5
+max_alcance_powerup = 6
+min_velocidad_movimiento_ms = 60
+reduccion_velocidad_powerup_ms = 15
+duracion_invencibilidad_powerup_ms = 5000
+intervalo_anim_powerup_suelo_ms = 200
+intervalo_anim_sprite_invencible_ms = 120
+frames_powerup_invencible_suelo = 2
+frames_sprite_invencible_campeon = 4
+ruta_powerups_sheet = carpeta_assets + "Powerups.png"
+ruta_powerup_invencible_suelo = carpeta_assets + "POWER UP.png"
+ruta_sprite_invencible_abajo = carpeta_assets + "ABAJO POWER UP.png"
+ruta_sprite_invencible_arriba = carpeta_assets + "ARRIBA POWER UP.png"
+ruta_sprite_invencible_izquierda = carpeta_assets + "IZQUIERDA POWER UP.png"
+ruta_sprite_invencible_derecha = carpeta_assets + "DERECHA POWER UP.png"
 
 # --- CONTROLES JUGADOR 1 (flechas + espacio + LSHIFT) ---
 # Valores: nombres de teclas pygame o enteros pygame.K_*
@@ -183,6 +209,54 @@ esquemas_teclas = [
     },
 ]
 
+INDICE_ESQUEMA_FLECHAS = 0
+INDICE_ESQUEMA_WASD = 1
+esquemas_elegibles = (INDICE_ESQUEMA_FLECHAS, INDICE_ESQUEMA_WASD)
+nombres_esquema = {
+    INDICE_ESQUEMA_FLECHAS: "Flechas",
+    INDICE_ESQUEMA_WASD: "WASD",
+}
+
+_etiquetas_tecla = {
+    "K_UP": "↑",
+    "K_DOWN": "↓",
+    "K_LEFT": "←",
+    "K_RIGHT": "→",
+    "K_SPACE": "Espacio",
+    "K_LSHIFT": "Mayús izq.",
+    "K_w": "W",
+    "K_s": "S",
+    "K_a": "A",
+    "K_d": "D",
+    "K_e": "E",
+    "K_q": "Q",
+}
+
+
+def _etiqueta_tecla(nombre):
+    return _etiquetas_tecla.get(nombre, nombre.replace("K_", ""))
+
+
+def descripcion_controles(indice_esquema):
+    """Líneas legibles para la pantalla de selección de controles."""
+    if indice_esquema not in nombres_esquema:
+        indice_esquema = INDICE_ESQUEMA_FLECHAS
+    esquema = esquemas_teclas[indice_esquema]
+    mov = " ".join(
+        _etiqueta_tecla(esquema[k])
+        for k in ("arriba", "abajo", "izquierda", "derecha")
+    )
+    bomba = _etiqueta_tecla(esquema["bomba"])
+    especial = _etiqueta_tecla(esquema["especial"])
+    nombre = nombres_esquema[indice_esquema]
+    return [
+        nombre,
+        f"Movimiento: {mov}",
+        f"Bomba: {bomba}",
+        f"Especial: {especial}",
+    ]
+
+
 # --- RED LAN ---
 puerto_descubrimiento = 5556
 puerto_juego = 5557
@@ -193,7 +267,9 @@ max_clientes_lan = 4
 min_jugadores_lan = 2
 tamano_buffer_red = 4096
 encoding_red = "utf-8"
-intervalo_sync_red_ms = 50
+intervalo_sync_pos_ms = 50
+intervalo_sync_respaldo_ms = 2000
+timeout_prediccion_bomba_ms = 150
 
 # --- MENSAJES EN PANTALLA ---
 texto_ganador = "Ganador: {nombre}"
@@ -204,3 +280,6 @@ texto_esperando_jugadores = "Esperando jugadores ({n}/{max})..."
 texto_boton_iniciar = "INICIAR PARTIDA"
 texto_conectado_sala = "Conectado. Espera a que el host pulse INICIAR..."
 texto_sala_llena = "Sala llena"
+texto_esperando_controles_lan = "Esperando a que todos elijan controles..."
+texto_listo_controles = "Listo"
+texto_pendiente_controles = "Eligiendo controles..."

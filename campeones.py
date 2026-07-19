@@ -19,8 +19,22 @@ from configuracion import (
     vida_inicial,
     duracion_invencibilidad_ms,
     intervalo_parpadeo_ms,
+    alcance_explosion,
+    max_bombas_powerup,
+    max_alcance_powerup,
+    min_velocidad_movimiento_ms,
+    reduccion_velocidad_powerup_ms,
+    duracion_invencibilidad_powerup_ms,
+    intervalo_anim_sprite_invencible_ms,
+    frames_sprite_invencible_campeon,
+    ruta_sprite_invencible_abajo,
+    ruta_sprite_invencible_arriba,
+    ruta_sprite_invencible_izquierda,
+    ruta_sprite_invencible_derecha,
 )
 import spritesheet
+
+_sprites_invencibilidad = None
 
 CAMPEONES = [
     {
@@ -28,8 +42,9 @@ CAMPEONES = [
         "nombre": "Guerrero Azul",
         "prefijo_sprite": "BLUE",
         "especial_id": "ninguno",
-        "velocidad_movimiento_ms": None,
+        "velocidad_movimiento_ms": 200,
         "max_bombas": None,
+        "alcance_explosion": 2,
         "color_reserva": (60, 120, 255),
     },
     {
@@ -37,8 +52,9 @@ CAMPEONES = [
         "nombre": "Guerrero Rojo",
         "prefijo_sprite": "RED",
         "especial_id": "ninguno",
-        "velocidad_movimiento_ms": 100,
+        "velocidad_movimiento_ms": 160,
         "max_bombas": None,
+        "alcance_explosion": 1,
         "color_reserva": (220, 60, 60),
     },
     {
@@ -46,8 +62,9 @@ CAMPEONES = [
         "nombre": "Guerrero Amarillo",
         "prefijo_sprite": "YELLOW",
         "especial_id": "ninguno",
-        "velocidad_movimiento_ms": None,
+        "velocidad_movimiento_ms": 200,
         "max_bombas": 2,
+        "alcance_explosion": 1,
         "color_reserva": (240, 200, 40),
     },
     {
@@ -55,8 +72,9 @@ CAMPEONES = [
         "nombre": "CuchillasPJ",
         "prefijo_sprite": "CuchillasPJ",
         "especial_id": "cuchillo",
-        "velocidad_movimiento_ms": None,
+        "velocidad_movimiento_ms": 200,
         "max_bombas": None,
+        "alcance_explosion": 1,
         "color_reserva": (180, 100, 255),
     },
 ]
@@ -73,6 +91,42 @@ def obtener_campeon(campeon_id):
 
 def lista_ids():
     return [c["id"] for c in CAMPEONES]
+
+
+def _etiqueta_velocidad(vel_ms):
+    """Convierte ms por casilla en etiqueta legible (menos ms = más rápido)."""
+    if vel_ms <= 150:
+        return "rápida"
+    if vel_ms >= 185:
+        return "lenta"
+    return "media"
+
+
+def descripcion_seleccion(campeon_id):
+    """Tres líneas con el mismo formato para todos los campeones."""
+    import especiales
+
+    campeon = obtener_campeon(campeon_id)
+    vel_ms = campeon.get("velocidad_movimiento_ms")
+    if vel_ms is None:
+        vel_ms = velocidad_movimiento_ms
+    alcance = campeon.get("alcance_explosion")
+    if alcance is None:
+        alcance = alcance_explosion
+    max_b = campeon.get("max_bombas")
+    if max_b is None:
+        max_b = max_bombas_por_jugador
+    especial_id = campeon.get("especial_id", "ninguno")
+    if especial_id == "ninguno":
+        especial = "ninguna"
+    else:
+        especial = especiales.obtener_definicion(especial_id)["nombre"].lower()
+    return [
+        f"Velocidad: {_etiqueta_velocidad(vel_ms)}.",
+        f"Explosión: alcance {alcance}.",
+        f"Bombas: {max_b}", 
+        f"Especial: {especial}.",
+    ]
 
 
 def _cargar_sprites_campeon(prefijo):
@@ -110,8 +164,60 @@ def _tecla_desde_nombre(nombre):
     return getattr(pygame, nombre, pygame.K_UNKNOWN)
 
 
+def _cargar_sprites_invencibilidad():
+    global _sprites_invencibilidad
+    if _sprites_invencibilidad is not None:
+        return _sprites_invencibilidad
+    rutas = {
+        "abajo": ruta_sprite_invencible_abajo,
+        "arriba": ruta_sprite_invencible_arriba,
+        "izquierda": ruta_sprite_invencible_izquierda,
+        "derecha": ruta_sprite_invencible_derecha,
+    }
+    sprites = {}
+    for dire, ruta in rutas.items():
+        try:
+            sprites[dire] = spritesheet.cargar_frames(
+                ruta, frames_sprite_invencible_campeon, tamano_bloque
+            )
+        except (FileNotFoundError, pygame.error):
+            reserva = spritesheet.superficie_reserva(tamano_bloque, (100, 220, 255))
+            sprites[dire] = [reserva] * frames_sprite_invencible_campeon
+    _sprites_invencibilidad = sprites
+    return sprites
+
+
+def aplicar_powerup(jugador, tipo, ahora_ms):
+    from powerups import (
+        TIPO_BOMBA,
+        TIPO_EXPLOSION,
+        TIPO_VELOCIDAD,
+        TIPO_VIDA,
+        TIPO_INVENCIBILIDAD,
+    )
+
+    if tipo == TIPO_BOMBA:
+        jugador.max_bombas = min(jugador.max_bombas + 1, max_bombas_powerup)
+    elif tipo == TIPO_EXPLOSION:
+        jugador.alcance_explosion = min(
+            jugador.alcance_explosion + 1, max_alcance_powerup
+        )
+    elif tipo == TIPO_VELOCIDAD:
+        jugador.velocidad_movimiento_ms = max(
+            min_velocidad_movimiento_ms,
+            jugador.velocidad_movimiento_ms - reduccion_velocidad_powerup_ms,
+        )
+    elif tipo == TIPO_VIDA:
+        if jugador.vidas < vida_inicial:
+            jugador.vidas += 1
+    elif tipo == TIPO_INVENCIBILIDAD:
+        fin = ahora_ms + duracion_invencibilidad_powerup_ms
+        jugador.invencible_hasta_ms = max(jugador.invencible_hasta_ms, fin)
+        jugador.invencible_sprite_powerup_hasta_ms = fin
+
+
 class Jugador:
-    def __init__(self, jugador_id, campeon_id, indice_spawn=None, es_lan=False):
+    def __init__(self, jugador_id, campeon_id, indice_spawn=None, indice_esquema=0):
         self.jugador_id = jugador_id
         self.campeon = obtener_campeon(campeon_id)
         self.especial_id = self.campeon["especial_id"]
@@ -140,7 +246,13 @@ class Jugador:
         self.esta_vivo = True
         self.vidas = vida_inicial
         self.invencible_hasta_ms = 0
+        self.invencible_sprite_powerup_hasta_ms = 0
+        alcance = self.campeon.get("alcance_explosion")
+        self.alcance_explosion = (
+            alcance if alcance is not None else alcance_explosion
+        )
         self.bombas_activas = 0
+        self.bomba_pulsada = False
         self.ultimo_especial_ms = 0
 
         vel = self.campeon.get("velocidad_movimiento_ms")
@@ -149,7 +261,8 @@ class Jugador:
         max_b = self.campeon.get("max_bombas")
         self.max_bombas = max_b if max_b is not None else max_bombas_por_jugador
 
-        indice_esquema = 0 if es_lan else jugador_id % len(esquemas_teclas)
+        if indice_esquema < 0 or indice_esquema >= len(esquemas_teclas):
+            indice_esquema = jugador_id % len(esquemas_teclas)
         esquema = esquemas_teclas[indice_esquema]
         self.teclas = {
             "arriba": _tecla_desde_nombre(esquema["arriba"]),
@@ -237,7 +350,15 @@ class Jugador:
             self.direccion = "derecha"
         return True
 
-    def _obtener_sprite_actual(self):
+    def usa_sprites_invencibilidad_powerup(self, ahora_ms):
+        return self.esta_vivo and ahora_ms < self.invencible_sprite_powerup_hasta_ms
+
+    def _obtener_sprite_actual(self, ahora_ms=None):
+        if ahora_ms is not None and self.usa_sprites_invencibilidad_powerup(ahora_ms):
+            frames = _cargar_sprites_invencibilidad().get(self.direccion)
+            if frames:
+                idx = (ahora_ms // intervalo_anim_sprite_invencible_ms) % len(frames)
+                return frames[idx]
         frames = self.sprites.get(self.direccion)
         if not frames:
             return None
@@ -246,7 +367,23 @@ class Jugador:
         return frames[indice_idle_campeon]
 
     def puede_colocar_bomba(self):
-        return self.esta_vivo and self.esta_alineado() and self.bombas_activas < self.max_bombas
+        return self.esta_vivo and self.bombas_activas < self.max_bombas
+
+    def solicitar_bomba(self):
+        if self.esta_vivo:
+            self.bomba_pulsada = True
+
+    def intentar_colocar_bomba_pendiente(self, gestor_bombas):
+        """Coloca la bomba en la celda lógica actual (aunque el sprite esté en movimiento)."""
+        if not self.bomba_pulsada:
+            return
+        if self.bombas_activas >= self.max_bombas:
+            self.bomba_pulsada = False
+            return
+        if not self.puede_colocar_bomba():
+            return
+        if gestor_bombas.colocar(self.columna, self.fila, self):
+            self.bomba_pulsada = False
 
     def registrar_bomba(self):
         self.bombas_activas += 1
@@ -294,11 +431,12 @@ class Jugador:
             return
         if ahora_ms is None:
             ahora_ms = pygame.time.get_ticks()
-        if self.es_invencible(ahora_ms) and (ahora_ms // intervalo_parpadeo_ms) % 2 == 0:
-            return
+        if not self.usa_sprites_invencibilidad_powerup(ahora_ms):
+            if self.es_invencible(ahora_ms) and (ahora_ms // intervalo_parpadeo_ms) % 2 == 0:
+                return
         x = mapa_offset_x + int(self.pixel_x)
         y = mapa_offset_y + int(self.pixel_y)
-        sprite = self._obtener_sprite_actual()
+        sprite = self._obtener_sprite_actual(ahora_ms)
         if sprite:
             screen.blit(sprite, (x, y))
         else:
@@ -316,7 +454,11 @@ class Jugador:
             "inicio_movimiento_ms": self.inicio_movimiento_ms,
             "vidas": self.vidas,
             "invencible_hasta_ms": self.invencible_hasta_ms,
+            "invencible_sprite_powerup_hasta_ms": self.invencible_sprite_powerup_hasta_ms,
             "bombas_activas": self.bombas_activas,
+            "max_bombas": self.max_bombas,
+            "alcance_explosion": self.alcance_explosion,
+            "velocidad_movimiento_ms": self.velocidad_movimiento_ms,
         }
 
     def aplicar_estado_red(self, datos, ahora_ms):
@@ -330,6 +472,16 @@ class Jugador:
             self.invencible_hasta_ms = datos["invencible_hasta_ms"]
         if "bombas_activas" in datos:
             self.bombas_activas = datos["bombas_activas"]
+        if "max_bombas" in datos:
+            self.max_bombas = datos["max_bombas"]
+        if "alcance_explosion" in datos:
+            self.alcance_explosion = datos["alcance_explosion"]
+        if "velocidad_movimiento_ms" in datos:
+            self.velocidad_movimiento_ms = datos["velocidad_movimiento_ms"]
+        if "invencible_sprite_powerup_hasta_ms" in datos:
+            self.invencible_sprite_powerup_hasta_ms = datos[
+                "invencible_sprite_powerup_hasta_ms"
+            ]
 
         if "pixel_x" in datos:
             self.pixel_x = datos["pixel_x"]
@@ -346,11 +498,12 @@ class Jugador:
             self.moviendo = False
 
 
-def crear_jugadores_local(ids_campeones):
+def crear_jugadores_local(ids_campeones, indices_esquema):
     """Crea jugadores para partida local según lista de ids de campeón."""
     jugadores = []
     for i, campeon_id in enumerate(ids_campeones):
-        jugadores.append(Jugador(i, campeon_id, indice_spawn=i))
+        esquema = indices_esquema[i] if i < len(indices_esquema) else i % len(esquemas_teclas)
+        jugadores.append(Jugador(i, campeon_id, indice_spawn=i, indice_esquema=esquema))
     return jugadores
 
 
